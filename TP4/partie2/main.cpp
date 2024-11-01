@@ -69,3 +69,4 @@ int main() {
 
     return 0;
 }
+//pour compiler :g++ dsa.cpp -o dsa -lssl -lcrypto
