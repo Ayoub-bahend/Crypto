@@ -1,33 +1,36 @@
-#On purge la liste des suffixes utilise pour les roles implicites
+# On purge la liste des suffixes utilise pour les roles implicites
 .SUFFIXES:
 
-#On ajoute simplements les extensions dont l'on a besoin
-.SUFFIXES:.cpp .o
+# On ajoute simplements les extensions dont l'on a besoin
+.SUFFIXES: .cpp .o
 
-#Nom de l'executable
-EXEC=tp
+# Nom de l'executable
+EXEC=tp5
 
-#Liste des fichiers sources separes par des espaces
-SOURCES=Exo_1.cpp
+# Liste des fichiers sources separes par des espaces
+SOURCES=common.cpp main.cpp
 
-#Liste des fichiers objets
+# Liste des fichiers objets
 OBJETS=$(SOURCES:%.cpp=%.o)
 
-#Compilateur et options de compilation
+# Compilateur et options de compilation
 CCPP=g++
 CFLAGS= -W -Wall -Wextra -pedantic -std=c++0x -I /usr/X11R6/include
-LFLAGS= -L . -L /usr/X11R6/lib  -lpthread -lX11 -Dcimg_use_xshm  -lntl -lgmp -lm
+LFLAGS= -L . -L /usr/X11R6/lib -lpthread -lX11 -Dcimg_use_xshm -lgmp -lm
 
-#Role explicite de construction de l'executable
-$(EXEC):$(OBJETS) Makefile
-	$(CCPP) -o  $(EXEC) $(OBJETS) $(LFLAGS)
+# Role explicite de construction de l'executable
+$(EXEC): $(OBJETS) Makefile
+	$(CCPP) -o $(EXEC) $(OBJETS) $(LFLAGS)
+
 .cpp.o:
 	$(CCPP) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm $(OBJETS)
+
 clear:
 	rm $(EXEC)
+
 depend:
 	sed -e "/^#DEPENDANCIES/,$$ d" Makefile >dependances
 	echo "#DEPENDANCIES" >> dependances
@@ -36,8 +39,5 @@ depend:
 	rm dependances
 
 #DEPENDANCIES
-main.o: main.cpp 
-
-
-
-
+common.o: common.cpp common.hpp
+main.o: main.cpp common.hpp
