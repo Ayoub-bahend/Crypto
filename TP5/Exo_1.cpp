@@ -314,12 +314,6 @@ void printSeparator() {
     cout << "----------------------------------------" << std::endl;
 }
 
-
-
-
-
-
-
 // Function to convert a hex string to aes_t
 aes_t hexToAesT(const std::string& hex) {
     std::stringstream ss;
@@ -328,8 +322,6 @@ aes_t hexToAesT(const std::string& hex) {
     ss >> value;
     return value;
 }
-
-
 
 // Function to decrypt using CFB mode
 void decryptCFB(const std::vector<aes_t>& ciphertext, const aes_t iv[3][4], aes_t roundKeys[6][3][4], std::vector<aes_t>& plaintext) {
@@ -570,11 +562,3 @@ int main() {
     printSeparator();
     return 0;
 }
-
-
-
-
-
-
-
-
