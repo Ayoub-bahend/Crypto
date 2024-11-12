@@ -7,7 +7,9 @@ const int N = 16;
 const aes_t MAX = 0xFFFF; 
 aes_t* table_mul_Y;
 aes_t* table_mul_3;
-
+aes_t* table_mul_5b65;
+aes_t* table_mul_edaf;
+aes_t* table_mul_36dc;
 // P16 = X^{16} + X^5 + X^3 + X^2 + 1
 const aes_t PAES = (1 << 16) + (1 << 5) + (1 << 3) + (1 << 2) + 1;
 const aes_t C = (1 << 3)+ 1;
@@ -71,6 +73,22 @@ void ShiftRow(aes_t state[3][4]) {
     state[2][3] = temp;
 }
 
+void InverseShiftRow(aes_t state[3][4]) {
+    // Inverser le décalage de la 2ème ligne
+    aes_t temp = state[1][3];
+    state[1][3] = state[1][2];
+    state[1][2] = state[1][1];
+    state[1][1] = state[1][0];
+    state[1][0] = temp;
+
+    // Inverser le décalage de la 3ème ligne
+    temp = state[2][2];
+    state[2][2] = state[2][0];
+    state[2][0] = temp;
+    temp = state[2][3];
+    state[2][3] = state[2][1];
+    state[2][1] = temp;
+}
 
 aes_t* Table_Correspondance(aes_t g) {
     aes_t* table = new aes_t[MAX + 1];
@@ -163,22 +181,38 @@ void MixColumns(aes_t state[3][4]) {
         state[2][j] = new_a8;
     }
 }
-
-
-/*
-void MixColumns(aes_t state[3][4]) {
+void InverseMixColumns(aes_t state[3][4]) {
     for (int j = 0; j < 4; ++j) { 
         aes_t a0 = state[0][j];
         aes_t a4 = state[1][j];
         aes_t a8 = state[2][j];
-        state[0][j] = (3 * a0) ^ a8;
-        state[1][j] = (3 * a4) ^ a0;
-        state[2][j] = (3 * a8) ^ a4;
+
+        aes_t new_a0 = table_mul_5b65[a0] ^ table_mul_edaf[a4] ^ table_mul_36dc[a8];
+        aes_t new_a4 = table_mul_36dc[a0] ^ table_mul_5b65[a4] ^ table_mul_edaf[a8];
+        aes_t new_a8 = table_mul_edaf[a0] ^ table_mul_36dc[a4] ^ table_mul_5b65[a8];
+
+        state[2][j] = new_a0; 
+        state[0][j] = new_a4; 
+        state[1][j] = new_a8; 
     }
 }
-*/
+
+
+void initializeInverseTables() {
+    table_mul_5b65 = new aes_t[65536];
+    table_mul_edaf = new aes_t[65536];
+    table_mul_36dc = new aes_t[65536];
+
+    for (aes_t i = 0; i < 65536; ++i) {
+        table_mul_5b65[i] = mul(i, 0x5b65);
+        table_mul_edaf[i] = mul(i, 0xedaf);
+        table_mul_36dc[i] = mul(i, 0x36dc);
+    }
+}
+
 int main() {
     initializeTables();
+    initializeInverseTables();
 
     aes_t state[3][4] = {
         {0x8c45, 0xc3c5, 0x906f, 0x4601},
@@ -195,9 +229,20 @@ int main() {
         cout << endl;
     }
 
+    InverseMixColumns(state);
+    cout << "\nState After InverseMixColumns:" << endl;
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            cout << hex << state[i][j] << " ";
+        }
+        cout << endl;
+    }
 
     delete[] table_mul_Y;
     delete[] table_mul_3;
+    delete[] table_mul_5b65;
+    delete[] table_mul_edaf;
+    delete[] table_mul_36dc;
 
     return 0;
 }
