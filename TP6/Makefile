@@ -5,7 +5,7 @@
 .SUFFIXES:.cpp .o
 
 #Nom de l'executable
-EXEC=tp5
+EXEC=tp6
 
 #Liste des fichiers sources separes par des espaces
 #SOURCES=main_cipher.cpp

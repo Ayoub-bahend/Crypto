@@ -1,206 +1,206 @@
+#include <cstdint>
 #include <iostream>
 #include <string>
+#include <vector>
 #include <ctime>
-#include <cstdlib>
-#include <stdint.h>
-
 using namespace std;
 
-static const uint8_t S[16] = { 
-  0x3, 0xE, 0x1, 0xA, 0x4, 0x9, 0x5, 0x6, 0x8, 0xB, 0xF, 0x2, 0xD, 0xC, 0x0, 0x7
-};
+/*  S-box and its inverse */
+static const uint8_t S[16] = {0x3, 0xE, 0x1, 0xA, 0x4, 0x9, 0x5, 0x6,
+                              0x8, 0xB, 0xF, 0x2, 0xD, 0xC, 0x0, 0x7};
 
-static const uint8_t S_inv[16] = {
-  0xE, 0x2, 0xB, 0x0, 0x4, 0x6, 0x7, 0xF, 0x8, 0x5, 0x3, 0x9, 0xD, 0xC, 0x1, 0xA
-};
+static const uint8_t S_inv[16] = {0xE, 0x2, 0xB, 0x0, 0x4, 0x6, 0x7, 0xF,
+                                  0x8, 0x5, 0x3, 0x9, 0xD, 0xC, 0x1, 0xA};
 
-class Cipher
-{
+/* Cipher for cryptanalysis */
+class Cipher {
 private:
-  uint8_t k0;
-  uint8_t k1;
+    uint8_t k0;
+    uint8_t k1;
 
-  uint8_t roundFunc(uint8_t input)
-  {
-    return S[input];
-  }
+    uint8_t roundFunc(uint8_t input) {
+        uint8_t cypher = XOR(input, k0);
+        cypher = evaluateS(cypher);
+        cypher = XOR(cypher, k1);
+        return cypher;
+    }
 
-  uint8_t roundFunc_inv(uint8_t input)
-  {
-    return S_inv[input];
-  }
+    uint8_t roundFunc_inv(uint8_t input) {
+        uint8_t plain = XOR(input, k1);
+        plain = evaluateSinv(plain);
+        plain = XOR(plain, k0);
+        return plain;
+    }
 
 public:
-  Cipher()
-  {   
-    k0 = rand() % 16;
-    k1 = rand() % 16;
-    printf("First sub-key k0 = %x\n", k0);
-    printf("Second sub-key k1 = %x\n\n", k1);
-  }
+    Cipher() {
+        k0 = rand() % 16; // Random subkey0
+        k1 = rand() % 16; // Random subkey1
+        printf("First sub-key k0 = %x\n", k0);
+        printf("Second sub-key k1 = %x\n\n", k1);
+    }
 
-  uint8_t encrypt(uint8_t input)
-  {
-    uint8_t state = input ^ k0;
-    state = roundFunc(state);
-    state = state ^ k1;
-    state = roundFunc(state);
-    return state;
-  }
+    Cipher(uint8_t key0, uint8_t key1) {
+        k0 = key0;
+        k1 = key1;
+    }
 
-  uint8_t decrypt(uint8_t input)
-  {
-    uint8_t state = roundFunc_inv(input);
-    state = state ^ k1;
-    state = roundFunc_inv(state);
-    state = state ^ k0;
-    return state;
-  }
+    uint8_t encrypt(uint8_t input) {
+        uint8_t cypher = input;
+        for (int i = 0; i < 16; i++) {
+            cypher = roundFunc(cypher);
+        }
+        return cypher;
+    }
+
+    uint8_t decrypt(uint8_t input) {
+        uint8_t plain = input;
+        for (int i = 0; i < 16; i++) {
+            plain = roundFunc_inv(plain);
+        }
+        return plain;
+    }
+
+    static uint8_t XOR(const uint8_t& input, const uint8_t& key) {
+        return input ^ key;
+    }
+
+    static uint8_t evaluateS(const uint8_t& input) {
+        return S[input];
+    }
+
+    static uint8_t evaluateSinv(const uint8_t& input) {
+        return S_inv[input];
+    }
 };
 
-class Cryptanalysis
-{
+class Cryptanalysis {
+private:
+    uint8_t knownP0[1000];
+    uint8_t knownP1[1000];
+    uint8_t knownC0[1000];
+    uint8_t knownC1[1000];
+    uint8_t goodP0, goodP1, goodC0, goodC1;
+
+    int chardatmax;
+    int chardat0[16];
+    uint8_t T[16][16]; // Table for counting occurrences
+    vector<pair<uint8_t, uint8_t>> bestProba;
+    vector<pair<uint8_t, uint8_t>> xAndXprime[16];
+
 public:
-  uint8_t knownP0[1000];
-  uint8_t knownP1[1000];
-  uint8_t knownC0[1000];
-  uint8_t knownC1[1000];
-
-  void test_roundFunc()
-  {
-    for (uint8_t i = 0; i < 16; ++i) {
-      uint8_t result = S[i];
-      printf("roundFunc(%x) = %x\n", i, result);
-    }
-  }
-
-  void test_roundFunc_inv()
-  {
-    for (uint8_t i = 0; i < 16; ++i) {
-      uint8_t result = S_inv[i];
-      printf("roundFunc_inv(%x) = %x\n", i, result);
-    }
-  }
-
-  void test_encryption_decryption(Cipher &cipher)
-  {
-    for (uint8_t i = 0; i < 16; ++i) {
-      uint8_t ciphertext = cipher.encrypt(i);
-      uint8_t decrypted = cipher.decrypt(ciphertext);
-      printf("Message: %x, Chiffre: %x, Déchiffre: %x\n", i, ciphertext, decrypted);
-      if (i == decrypted) {
-        printf(" --> Success\n");
-      } else {
-        printf(" --> Failure\n");
-      }
-    }
-  }
-
-  void test_findBestDiffs()
-  {
-    uint8_t i, j;
-    uint8_t X, Xp, Y, Yp, DX, DY; 
-    uint8_t T[16][16] = {0};
-
-    printf("\nCreating XOR differential table:\n");
-
-    for (i = 0; i < 16; ++i) {
-      for (j = 0; j < 16; ++j) {
-        X = i;
-        Xp = j;
-        Y = S[X];
-        Yp = S[Xp];
-        DX = X ^ Xp;
-        DY = Y ^ Yp;
-        T[DX][DY]++;
-      }
+    Cryptanalysis() {
+        chardatmax = 0;
     }
 
-    for (i = 0; i < 16; ++i) {
-      printf("[");
-      for (j = 0; j < 16; ++j) {
-        printf(" %u ", T[i][j]);
-      }
-      printf("]\n");
+    void findBestDiffs() {
+        uint8_t i, j, X, Xp, Y, Yp, DX, DY;
+        
+        // Initialize the difference table
+        for (i = 0; i < 16; ++i) {
+            for (j = 0; j < 16; ++j) {
+                T[i][j] = 0;
+            }
+        }
+
+        printf("\nCreating XOR differential table:\n");
+
+        // Fill the difference table
+        for (X = 0; X < 16; X++) {
+            for (Xp = 0; Xp < 16; Xp++) {
+                Y = Cipher::evaluateS(X);
+                Yp = Cipher::evaluateS(Xp);
+
+                DX = (X ^ Xp);
+                DY = (Y ^ Yp);
+
+                if (X + Xp != 0) {
+                    xAndXprime[DX].push_back(make_pair(X, Xp));
+                }
+                T[DX][DY]++;
+            }
+        }
+
+        // Display the difference table
+        for (i = 0; i < 16; ++i) {
+            printf("[");
+            for (j = 0; j < 16; ++j) {
+                printf(" %u ", T[i][j]);
+            }
+            printf("]\n");
+        }
+
+        // Find the best values (most probable differentials)
+        printf("\nDisplaying most probable differentials:\n");
+
+        uint8_t bestValue = 0;
+        for (i = 0; i < 16; i++) {
+            for (j = 0; j < 16; j++) {
+                if (!(i == 0 && j == 0) && bestValue < T[i][j]) {
+                    bestValue = T[i][j];
+                }
+            }
+        }
+
+        // Store the pairs corresponding to the best value
+        bestProba.clear();
+        genPairs(bestValue);
     }
-  }
 
-  void genPairs(Cipher &cipher, uint8_t diffIn, int nbPairs)
-  {
-    for (int i = 0; i < nbPairs; ++i) {
-      uint8_t P0 = rand() % 16;
-      uint8_t P1 = P0 ^ diffIn;
-      uint8_t C0 = cipher.encrypt(P0);
-      uint8_t C1 = cipher.encrypt(P1);
+    void genPairs(uint8_t diffIn) {
+        printf("\nGenerating known pairs with input differential of %x.\n", diffIn);
 
-      knownP0[i] = P0;
-      knownP1[i] = P1;
-      knownC0[i] = C0;
-      knownC1[i] = C1;
+        uint8_t DX, DY;
+        for (DX = 0; DX < 16; DX++) {
+            for (DY = 0; DY < 16; DY++) {
+                if (!(DX == 0 && DY == 0) && diffIn == T[DX][DY]) {
+                    bestProba.push_back(make_pair(DX, DY));
+                }
+            }
+        }
     }
-  }
 
-  void findGoodPair(uint8_t diffOut, int nbPairs)
-  {
-    for (int i = 0; i < nbPairs; ++i) {
-      if ((knownC0[i] ^ knownC1[i]) == diffOut) {
-        printf("Good pair found: P0=%x, P1=%x, C0=%x, C1=%x\n", knownP0[i], knownP1[i], knownC0[i], knownC1[i]);
-        return;
-      }
+    void findGoodPair(int diffOut, int nbPairs) {
+        printf("\nSearching for good pair:\n");
+
+        // Iterate through known pairs and test against the output differential
+        for (int i = 0; i < nbPairs; i++) {
+            // Implement logic to find good pairs based on the characteristics
+        }
     }
-    printf("No good pair found!\n");
-  }
 
-  void crack(int nbPairs)
-  {
-    printf("\nBrute forcing reduced keyspace:\n");
+    void crack(int nbPairs) {
+        printf("\nBrute forcing reduced keyspace:\n");
 
-    for (int k0 = 0; k0 < 16; ++k0) {
-      for (int k1 = 0; k1 < 16; ++k1) {
-        // Here you'd use the known pairs to test the keys
-        printf("Trying key: k0=%x, k1=%x\n", k0, k1);
-      }
+        // Implement brute force or keyspace reduction logic to guess key values
     }
-  }
 };
 
-int main()
-{
-    srand(time(NULL));
+//////////////////////////////////////////////////////////////////
+//                             MAIN                             //
+//////////////////////////////////////////////////////////////////
 
+int main() {
+    srand(time(NULL)); // Randomize values per run
     Cipher cipher;
-    Cryptanalysis analysis;
+    uint8_t message = rand() % 16;
+    printf("Producing a random message: %x\n", message);
 
-    // Test de la fonction roundFunc
-    printf("\n-- Test de roundFunc --\n");
-    analysis.test_roundFunc();
+    uint8_t ciphertext = cipher.encrypt(message);
+    printf("Encrypted message: %x\n", ciphertext);
 
-    // Test de la fonction roundFunc_inv
-    printf("\n-- Test de roundFunc_inv --\n");
-    analysis.test_roundFunc_inv();
+    uint8_t plaintext = cipher.decrypt(ciphertext);
+    printf("Decrypted message: %x\n", plaintext);
 
-    // Test de l'encryptage et du décryptage
-    printf("\n-- Test de l'encryptage et du décryptage --\n");
-    analysis.test_encryption_decryption(cipher);
+    if (message == plaintext) {
+        printf(" --> Success\n");
+    } else {
+        printf(" --> Failure\n");
+    }
 
-    // Test de la création de la table des différences
-    printf("\n-- Test de la table des différences --\n");
-    analysis.test_findBestDiffs();
-
-    // Test de la génération des paires
-    int nbPairs = 10;
-    uint8_t diffIn = 3; // Différence d'entrée
-    printf("\n-- Test de la génération des paires --\n");
-    analysis.genPairs(cipher, diffIn, nbPairs);
-
-    // Test de la recherche d'une bonne paire
-    uint8_t diffOut = 0; // Différence de sortie
-    printf("\n-- Test de la recherche d'une bonne paire --\n");
-    analysis.findGoodPair(diffOut, nbPairs);
-
-    // Test de l'attaque par force brute
-    printf("\n-- Test de l'attaque par force brute --\n");
-    analysis.crack(nbPairs);
+    // Cryptanalysis phase
+    Cryptanalysis cryptanalysis;
+    cryptanalysis.findBestDiffs(); // Find some good differentials in the S-box
 
     return 0;
 }
