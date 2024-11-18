@@ -161,19 +161,67 @@ public:
     }
 
     void findGoodPair(int diffOut, int nbPairs) {
-        printf("\nSearching for good pair:\n");
+        printf("\nRecherche de paires valides :\n");
 
-        // Iterate through known pairs and test against the output differential
-        for (int i = 0; i < nbPairs; i++) {
-            // Implement logic to find good pairs based on the characteristics
+        int count = 0;
+
+        // Parcours des paires possibles pour identifier celles qui correspondent au différentiel de sortie attendu
+        for (const auto& pair : xAndXprime[diffOut]) {
+            uint8_t X = pair.first;      // Première valeur de la paire
+            uint8_t Xp = pair.second;     // Deuxième valeur de la paire
+            uint8_t Y = Cipher::evaluateS(X);   // Sortie de la S-box pour X
+            uint8_t Yp = Cipher::evaluateS(Xp); // Sortie de la S-box pour X'
+
+            // Calcul de la différence de sortie réelle
+            uint8_t actualDiffOut = Y ^ Yp;
+
+            // Vérification de la correspondance avec le différentiel de sortie attendu
+            if (actualDiffOut == diffOut) {
+                printf("Paire trouvée : (X = %x, X' = %x) avec différence de sortie : %x\n", X, Xp, actualDiffOut);
+                count++;
+
+                // Arrête si on atteint le nombre de paires requis
+                if (count >= nbPairs) {
+                    break;
+                }
+            }
         }
     }
 
-    void crack(int nbPairs) {
-        printf("\nBrute forcing reduced keyspace:\n");
 
-        // Implement brute force or keyspace reduction logic to guess key values
+    void crack(int nbPairs) {
+    printf("\nForçage brut sur l'espace réduit de clés :\n");
+
+    for (uint8_t k0_guess = 0; k0_guess < 16; k0_guess++) {
+        for (uint8_t k1_guess = 0; k1_guess < 16; k1_guess++) {
+            bool validKey = true;
+
+            for (int i = 0; i < nbPairs; i++) {
+                uint8_t X = xAndXprime[0][i].first;
+                uint8_t Xp = xAndXprime[0][i].second;
+
+                // Chiffrement des paires avec les sous-clés devinées
+                uint8_t Y = Cipher::XOR(Cipher::evaluateS(Cipher::XOR(X, k0_guess)), k1_guess);
+                uint8_t Yp = Cipher::XOR(Cipher::evaluateS(Cipher::XOR(Xp, k0_guess)), k1_guess);
+
+                // Vérification de la différence de sortie
+                if ((Y ^ Yp) != 0) { // 0 représente un différentiel de sortie attendu
+                    validKey = false;
+                    break;
+                }
+            }
+
+            // Si toutes les paires correspondent, la clé devinée est probablement correcte
+            if (validKey) {
+                printf("Clé probable trouvée : k0 = %x, k1 = %x\n", k0_guess, k1_guess);
+                return; // Quitter après la première clé probable trouvée
+            }
+        }
     }
+
+    printf("Aucune clé valide trouvée dans l'espace de recherche.\n");
+}
+
 };
 
 //////////////////////////////////////////////////////////////////
@@ -201,6 +249,13 @@ int main() {
     // Cryptanalysis phase
     Cryptanalysis cryptanalysis;
     cryptanalysis.findBestDiffs(); // Find some good differentials in the S-box
+    
+    // Step 2: Use a specific differential to find pairs
+    int diffOut = 0x3; // Example differential for testing
+    int nbPairs = 5;   // Example number of pairs to find
+    cryptanalysis.findGoodPair(diffOut, nbPairs);
 
+    // Step 3: Attempt to crack the key using identified pairs
+    cryptanalysis.crack(nbPairs);
     return 0;
 }
