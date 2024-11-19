@@ -13,7 +13,6 @@ Structure du Projet
 ├── main.cpp                # Code source principal de l'attaque différentielle
 ├── Makefile             # Makefile pour la compilation du projet
 ├── README.md            # Documentation du projet
-└── src/                 # Répertoire contenant les fonctions auxiliaires et autres fichiers nécessaires
 
 Exécution du Programme
 Prérequis
