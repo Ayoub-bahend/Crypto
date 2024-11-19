@@ -1,0 +1,77 @@
+Cryptanalyse Différentielle
+
+Ce projet met en œuvre une cryptanalyse différentielle sur un algorithme de chiffrement symétrique, avec l'objectif de récupérer les sous-clés utilisées dans le chiffrement. Le processus repose sur l'analyse des différences dans les données chiffrées, permettant de deviner la clé secrète.
+Fonctionnalités
+
+    Chiffrement et Déchiffrement : Génération de messages aléatoires, chiffrement avec des sous-clés et déchiffrement pour tester la validité du chiffrement.
+    Table de distribution différentielle : Construction d'une table montrant comment les différences d'entrée se propagent à travers le chiffrement.
+    Attaque différentielle : Utilisation de la distribution des différences pour identifier les paires de textes chiffrés présentant des différences significatives, permettant de récupérer les sous-clés.
+    Récupération de la clé : Validation des clés candidates trouvées à partir des bonnes paires et des mauvaises paires pour confirmer la clé correcte.
+
+Structure du Projet
+
+├── main.cpp                # Code source principal de l'attaque différentielle
+├── Makefile             # Makefile pour la compilation du projet
+├── README.md            # Documentation du projet
+└── src/                 # Répertoire contenant les fonctions auxiliaires et autres fichiers nécessaires
+
+Exécution du Programme
+Prérequis
+
+    Un environnement compatible avec les compilateurs C.
+    La bibliothèque standard C (stdio.h, stdlib.h, etc.) doit être disponible.
+
+Compilation
+
+    Clonez ce dépôt sur votre machine locale.
+
+    Ouvrez un terminal dans le répertoire du projet.
+
+    Compilez le programme avec la commande suivante :
+
+    make
+
+Exécution
+
+Pour exécuter le programme, utilisez la commande suivante dans le terminal :
+
+./tp6
+
+Cela va exécuter l'attaque différentielle et afficher les résultats, y compris la clé retrouvée.
+Résultats Attendus
+
+Lors de l'exécution du programme, vous devriez obtenir les résultats suivants :
+
+    Chiffrement et Déchiffrement Corrects : Un message aléatoire est généré, chiffré, puis déchiffré pour vérifier le bon fonctionnement de l'algorithme de chiffrement.
+    Création de la Table de Distribution Différentielle : Une table montrant la propagation des différences à travers le chiffrement.
+    Attaque Différentielle : Identification des différentiels les plus probables et génération de paires.
+    Récupération de la Clé : Génération de plusieurs candidats pour les sous-clés, avec validation pour confirmer la clé correcte.
+
+Exemple de sortie :
+
+Première sous-clé k0 = 5
+Deuxième sous-clé k1 = 7
+
+Message aléatoire : 9
+Message chiffré : f
+Message déchiffré : 9
+ --> Succès : Le message a été correctement déchiffré.
+
+Création de la table de distribution différentielle (XOR):
+[ 16  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0 ]
+...
+Différentiel le plus probable (ΔX ≠ 0): ΔX = 1, ΔY = d avec 6 occurrences
+Différentiel choisi pour l'attaque: ΔX = 1, ΔY = d
+
+...
+
+Clé confirmée: k0 = 4, k1 = 6
+
+Explication de l'attaque
+
+L'attaque différentielle repose sur l'exploitation des différences entre les textes en clair et les textes chiffrés. Le principe est de calculer les différences d'entrée (ΔX) et d'observer comment elles se propagent à travers le chiffrement, ce qui permet de déduire la clé secrète.
+
+    Construction de la table de distribution différentielle : On calcule la différence entre les sorties pour chaque paire d'entrées possibles.
+    Sélection des différentiels les plus probables : À partir des résultats, on choisit les différentiels qui ont le plus de chances de se produire.
+    Génération de paires de texte clair et chiffré : En utilisant les différentiels, on génère des paires où la différence d'entrée est fixe.
+    Récupération de la clé : À partir des bonnes paires, on déduit les sous-clés utilisées dans l'algorithme de chiffrement.
