@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/shor.dir/main.cpp.o CMakeFiles/shor.dir/shor_classical.cpp.o CMakeFiles/shor.dir/shor_quantum.cpp.o -o shor 
