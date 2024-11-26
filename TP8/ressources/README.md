@@ -90,7 +90,7 @@ gcc failleTEA.c -o  prog3
     HMAC et Fonction de Hachage :
         Utilisez hash_mac pour calculer le HMAC d'un message et hash_mac_verification pour vérifier l'intégrité d'un message.
 
-##Sécurité
+## Sécurité
 
 Bien que TEA soit un algorithme simple et efficace, il présente des failles de sécurité connues. Ce projet met en évidence certaines de ces vulnérabilités et démontre comment elles peuvent être exploitées, en particulier dans l’utilisation de TEA comme fonction de hachage ou dans les mécanismes d'authentification des messages.
 
